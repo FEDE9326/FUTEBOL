@@ -2,7 +2,7 @@
 sudo apt-get update;
 sudo apt install qemu-kvm libvirt-bin;
 sudo apt install virtinst;
-sudo apt-get install lxc;
+
 sudo apt-get install cgroup-bin cgroup-lite cgroup-tools cgroupfs-mount libcgroup1;
 
 echo 'description "mount available cgroup filesystems"
@@ -22,7 +22,7 @@ if [ -x /bin/cgroups-umount ]
 then
     /bin/cgroups-umount
 fi
-end script' > sudo /etc/init/cgroup-lite.conf;
+end script' > /etc/init/cgroup-lite.conf;
 
 echo 'mount {
 cpuacct = /cgroup/cpuacct;
@@ -79,14 +79,17 @@ group media-players {
     }
 }
 
-cgconfigparser -l /etc/cgconfig.conf' > sudo /etc/cgconf.conf;
+cgconfigparser -l /etc/cgconfig.conf' > /etc/cgconf.conf;
 
-sed 's/GRUB_CMDLINE_LINUX_DEFAULT=""/GRUB_CMDLINE_LINUX_DEFAULT="cgroup_enable=memory swapaccount=1"/g' /etc/default/grub;
+sed 's/GRUB_CMDLINE_LINUX_DEFAULT/GRUB_CMDLINE_LINUX_DEFAULT="cgroup_enable=memory swapaccount=1/g' /etc/default/grub;
 
-sudo update-grub;
+update-grub;
 
 sudo cgcreate -a federicobarusso -g memory,cpu:groupname;
+mkdir /sys/fs/cgroup/cpuset;
+sudo mount -t cgroup cpuset -o cpuset /sys/fs/cgroup/cpuset/;
 
+sudo apt-get install lxc;
 echo "Type your container's name (OS ubuntu): ";
 read name;
 sudo lxc-create -t ubuntu -n "$name";
@@ -116,7 +119,7 @@ echo "<domain type='lxc'>
   </devices>
 </domain>" > "$name".xml;
 
-sudo virsh -c lxc:// define "$name".xml;
+sudo virsh -c lxc:// "$name".xml;
 sudo virsh -c lxc:// start "$name";
 sudo virsh -c lxc:// console "$name";
 
