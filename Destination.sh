@@ -1,4 +1,7 @@
 #!/bin/bash
+sudo apt-get update;
+sudo apt install qemu-kvm libvirt-bin;
+sudo apt install virtinst;
 
 sudo apt-get install cgroup-bin cgroup-lite cgroup-tools cgroupfs-mount libcgroup1;
 
@@ -82,9 +85,8 @@ sed 's/GRUB_CMDLINE_LINUX_DEFAULT/GRUB_CMDLINE_LINUX_DEFAULT="cgroup_enable=memo
 
 update-grub;
 
-cgcreate -a federicobarusso -g memory,cpu:groupname;
+sudo cgcreate -a federicobarusso -g memory,cpu:groupname;
 mkdir /sys/fs/cgroup/cpuset;
-mount -t cgroup cpuset -o cpuset /sys/fs/cgroup/cpuset/;
+sudo mount -t cgroup cpuset -o cpuset /sys/fs/cgroup/cpuset/;
 
-
-
+sudo apt-get install lxc;
