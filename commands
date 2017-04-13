@@ -1,0 +1,33 @@
+sudo virsh -c lxc:// migrate container1 lxc+tcp://192.168.5.157:3003/
+sudo LIBVIRT_DEBUG=1 virsh -c lxc:// migrate --live container1 lxc+tcp://192.168.5.157:3003/
+
+
+
+sudo nano /etc/libvirt/libvirtd.conf
+sudo nano /etc/default/libvirt-bin
+sudo nano /etc/libvirt/qemu.conf
+sudo service libvirt-bin restart
+
+
+sudo tcpdump port 3003 -v -i ens3 and '(tcp-syn|tcp-ack)!=0'
+sudo iptables -A INPUT -p tcp --dport 3003 -j ACCEPT
+sudo iptables -L
+
+virtlogd
+virtlockd
+
+sudo iptables -A INPUT -p tcp --dport 16509 -j ACCEPT
+sudo iptables -A FORWARD -p tcp --dport 16509 -j ACCEPT
+
+sudo ufw disable
+sudo nano /etc/init/libvirt-bin.conf
+sudo reboot
+cd /var/run/libvirt/
+sudo chmod ugo+xwr ./*
+sudo nano /etc/libvirt/libvirtd.conf
+sudo nano /etc/default/libvirt-bin
+sudo nano /etc/libvirt/qemu.conf
+sudo service libvirt-bin restart
+
+
+
