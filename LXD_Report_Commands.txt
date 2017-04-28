@@ -1,0 +1,116 @@
+# LXD, LIBGROUP and insertion of my user into the lxc group
+
+sudo add-apt-repository ppa:ubuntu-lxc/lxd-stable;
+sudo apt-get update;
+sudo apt-get install lxd;
+sudo apt-get install cgroup-bin cgroup-lite cgroup-tools cgroupfs-mount libcgroup1;
+newgrp lxd;
+sudo usermod -a -G lxd federicobarusso;
+
+# LAST CRIU Version
+sudo apt-get update && sudo apt-get install -y protobuf-c-compiler libprotobuf-c0-dev protobuf-compiler libprotobuf-dev:amd64 gcc build-essential bsdmainutils python git-core asciidoc make htop git curl supervisor cgroup-lite libapparmor-dev libseccomp-dev libprotobuf-dev libprotobuf-c0-dev protobuf-c-compiler protobuf-compiler python-protobuf libnl-3-dev libcap-dev libaio-dev apparmor;
+sudo apt-get install libnet1-dev
+
+git clone  https://github.com/xemul/criu.git criu
+cd criu
+make clean
+make
+sudo make install
+
+#BRIDGE CREATION
+
+sudo apt-get install bridge-utils;
+
+sudo nano /etc/network/interfaces
+"
+auto lo
+iface lo inet loopback
+
+auto ens3
+iface ens3 inet manual
+
+auto br0
+iface br0 inet static
+    address 192.168.5.?
+    netmask 255.255.255.0
+    gateway 192.168.5.1
+    dns-nameservers 134.226.56.13
+    bridge_ports ens3
+    bridge_stp off
+    bridge_fd 0
+    bridge_maxwait 0
+"
+sudo nano /etc/sysctl.conf uncomment net.ipv4.ip_forward=1
+sudo sysctl -p
+
+# LXD INIT and bridge profile generation
+
+sudo lxd init;
+"Do you want to configure a new storage pool (yes/no) [default=yes]? yes
+Name of the new storage pool [default=default]: 
+Name of the storage backend to use (dir, btrfs, lvm) [default=dir]: 
+Would you like LXD to be available over the network (yes/no) [default=no]? yes
+Address to bind LXD to (not including port) [default=all]: "VM ip"
+Port to bind LXD to [default=8443]: 
+Trust password for new clients: 
+Again: 
+Would you like stale cached images to be updated automatically (yes/no) [default=yes]? 
+Would you like to create a new network bridge (yes/no) [default=yes]? no
+"
+
+lxc profile create bridged
+lxc profile edit bridged
+"
+name: bridged
+config: 
+  raw.lxc: |      <---- I don't understand the meaning of this part...someone suggest could be the solution of the problem but it isn't
+    lxc.console = none
+    lxc.cgroup.devices.deny = c 5:1 rwm
+    lxc.start.auto =
+    lxc.start.auto = proc:mixed sys:mixed
+  security.privileged: "true"
+devices:
+  ens3:
+    nictype: bridged
+    parent: br0
+    type: nic
+"
+sudo reboot OR network service reboot
+
+# CONTAINER GENERATION and START with BRIDGED profile 
+
+lxc launch ubuntu:16.04 my-ubuntu1 -p bridged -s default
+
+# LXD HOSTS and visibility in the network
+
+lxc config set core.https_address myip:8443
+lxc config set core.trust_password  password
+lxc remote add host1 myip:8443
+lxc remote add host2 destip:8443
+
+# MIGRATION
+lxc move host1:my-ubuntu1 host2:my-ubuntu1 
+
+
+##############ERRORS################
+
+# CRIU SYSTEM CHECK
+"sudo criu check --all
+Error (criu/cr-check.c:1018): The TCP_REPAIR_WINDOW option isn't supported.
+Error (criu/cr-check.c:962): TCP_REPAIR can't be enabled for half-closed sockets
+Error (criu/cr-check.c:849): autofs not supported.
+Warn  (criu/cr-check.c:1062): compat_cr is not supported. Requires kernel >= v4.9
+Looks good but some kernel features are missing
+which, depending on your process tree, may cause
+dump or restore failure.
+"
+
+# MIGRATION ERROR
+
+lxc move --force-local host1:my-ubuntu5 host2:my-ubuntu5error: Migration failed on target host: Error transferring container data: websocket: bad handshake
+
+# STATEFUL SNAPSHOT
+
+lxc snapshot my-ubuntu snap0 (--stateful) --> same error as MIGRATION ERROR
+
+
