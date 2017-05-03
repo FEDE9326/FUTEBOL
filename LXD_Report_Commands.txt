@@ -113,4 +113,44 @@ lxc move --force-local host1:my-ubuntu5 host2:my-ubuntu5error: Migration failed 
 
 lxc snapshot my-ubuntu snap0 (--stateful) --> same error as MIGRATION ERROR
 
+# LIVE MIGRATION KERNEL
+Live Migration does only work until Kernel 4.4.0-45
+Current version Linux experiment-unit 4.4.0-59-generic #80-Ubuntu
+
+#APPARMOR DISABLE SERVICE
+sudo ln -s /etc/apparmor.d/sbin.dhclient /etc/apparmor.d/disable/
+sudo apparmor_parser -R /etc/apparmor.d/sbin.dhclient
+
+#MAYBE WORKAROUND
+lxc launch ubuntu:16.04 my-ubuntu7 -p bridged -s default
+lxc exec my-ubuntu7 bash 
+ping 134.226.62.134 &
+exit
+
+sudo tcpdump -i wlan0 icmp and icmp[icmptype]=icmp-echo
+
+lxc snapshot my-ubuntu7 snap7 --stateful
+lxc stop my-ubuntu7
+lxc move --force-local host1:my-ubuntu7 host2:my-ubuntu7
+lxc restore host2:my-ubuntu7 snap7
+lxc delete host1:my-ubuntu7
+"
+federicobarusso@experiment-unit:/var/lib$ lxc snapshot my-ubuntu7 snap7 --stateful
+error: snapshot dump failed
+(01.429979) Warn  (compel/arch/x86/src/lib/infect.c:249): Will restore 11402 with interrupted system call
+(02.259613) Warn  (compel/arch/x86/src/lib/infect.c:249): Will restore 11418 with interrupted system call
+(02.259930) Warn  (compel/arch/x86/src/lib/infect.c:249): Will restore 11420 with interrupted system call
+(02.263918) Warn  (compel/arch/x86/src/lib/infect.c:249): Will restore 11415 with interrupted system call
+(02.503686) Warn  (compel/arch/x86/src/lib/infect.c:249): Will restore 11430 with interrupted system call
+(02.503849) Warn  (compel/arch/x86/src/lib/infect.c:249): Will restore 11436 with interrupted system call
+(02.506460) Warn  (compel/arch/x86/src/lib/infect.c:249): Will restore 11416 with interrupted system call
+(02.687370) Warn  (compel/arch/x86/src/lib/infect.c:249): Will restore 11437 with interrupted system call
+(02.935575) Warn  (compel/arch/x86/src/lib/infect.c:249): Will restore 11442 with interrupted system call
+(02.935724) Warn  (compel/arch/x86/src/lib/infect.c:249): Will restore 11450 with interrupted system call
+(03.116793) Warn  (compel/arch/x86/src/lib/infect.c:249): Will restore 11488 with interrupted system call
+(03.117072) Error (criu/files-reg.c:1132): Can't lookup mount=22 for fd=0 path=/dev/pts/6 (deleted)
+(03.117084) Error (criu/cr-dump.c:1324): Dump files (pid: 11488) failed with -1
+(03.121181) Error (criu/cr-dump.c:1644): Dumping FAILED.
+"
+
 
