@@ -9,19 +9,19 @@ sudo usermod -a -G lxd federicobarusso;
 
 # LAST CRIU Version
 sudo apt-get update && sudo apt-get install -y protobuf-c-compiler libprotobuf-c0-dev protobuf-compiler libprotobuf-dev:amd64 gcc build-essential bsdmainutils python git-core asciidoc make htop git curl supervisor cgroup-lite libapparmor-dev libseccomp-dev libprotobuf-dev libprotobuf-c0-dev protobuf-c-compiler protobuf-compiler python-protobuf libnl-3-dev libcap-dev libaio-dev apparmor;
-sudo apt-get install libnet1-dev
+sudo apt-get install libnet1-dev;
 
-git clone  https://github.com/xemul/criu.git criu
-cd criu
-make clean
-make
-sudo make install
+git clone  https://github.com/xemul/criu.git criu;
+cd criu;
+make clean;
+make;
+sudo make install;
 
 #BRIDGE CREATION
 
 sudo apt-get install bridge-utils;
 
-sudo nano /etc/network/interfaces
+sudo nano /etc/network/interfaces;
 "
 auto lo
 iface lo inet loopback
@@ -40,8 +40,10 @@ iface br0 inet static
     bridge_fd 0
     bridge_maxwait 0
 "
-sudo nano /etc/sysctl.conf uncomment net.ipv4.ip_forward=1
-sudo sysctl -p
+sudo nano /etc/sysctl.conf;  #uncomment #net.ipv4.ip_forward=1
+sudo sysctl -p;
+
+sudo apt-get install zfsutils-linux
 
 # LXD INIT and bridge profile generation
 
@@ -58,17 +60,11 @@ Would you like stale cached images to be updated automatically (yes/no) [default
 Would you like to create a new network bridge (yes/no) [default=yes]? no
 "
 
-lxc profile create bridged
+lxc profile create bridged;
 lxc profile edit bridged
 "
 name: bridged
 config: 
-  raw.lxc: |      <---- I don't understand the meaning of this part...someone suggest could be the solution of the problem but it isn't
-    lxc.console = none
-    lxc.cgroup.devices.deny = c 5:1 rwm
-    lxc.start.auto =
-    lxc.start.auto = proc:mixed sys:mixed
-  security.privileged: "true"
 devices:
   ens3:
     nictype: bridged
@@ -83,10 +79,10 @@ lxc launch ubuntu:16.04 my-ubuntu1 -p bridged -s default
 
 # LXD HOSTS and visibility in the network
 
-lxc config set core.https_address myip:8443
-lxc config set core.trust_password  password
-lxc remote add host1 myip:8443
-lxc remote add host2 destip:8443
+lxc config set core.https_address 192.168.5.231:8443  #myip
+lxc config set core.trust_password fede
+lxc remote add host1 192.168.5.231:8443
+lxc remote add host2 192.168.5.92:8443
 
 # MIGRATION
 lxc move host1:my-ubuntu1 host2:my-ubuntu1 
@@ -117,11 +113,11 @@ lxc snapshot my-ubuntu snap0 (--stateful) --> same error as MIGRATION ERROR
 Live Migration does only work until Kernel 4.4.0-45
 Current version Linux experiment-unit 4.4.0-59-generic #80-Ubuntu
 
-#APPARMOR DISABLE SERVICE
-sudo ln -s /etc/apparmor.d/sbin.dhclient /etc/apparmor.d/disable/
-sudo apparmor_parser -R /etc/apparmor.d/sbin.dhclient
+#APPARMOR DISABLE SERVICE INSIDE CONTAINER
+ln -s /etc/apparmor.d/sbin.dhclient /etc/apparmor.d/disable/
+apparmor_parser -R /etc/apparmor.d/sbin.dhclient
 
-#MAYBE WORKAROUND
+#PING TRY-->ERRORS
 lxc launch ubuntu:16.04 my-ubuntu7 -p bridged -s default
 lxc exec my-ubuntu7 bash 
 ping 134.226.62.134 &
@@ -134,6 +130,8 @@ lxc stop my-ubuntu7
 lxc move --force-local host1:my-ubuntu7 host2:my-ubuntu7
 lxc restore host2:my-ubuntu7 snap7
 lxc delete host1:my-ubuntu7
+
+# AFTER DISABLING APPARMOR
 "
 federicobarusso@experiment-unit:/var/lib$ lxc snapshot my-ubuntu7 snap7 --stateful
 error: snapshot dump failed
@@ -152,5 +150,54 @@ error: snapshot dump failed
 (03.117084) Error (criu/cr-dump.c:1324): Dump files (pid: 11488) failed with -1
 (03.121181) Error (criu/cr-dump.c:1644): Dumping FAILED.
 "
+
+# ZFS STORAGE POOl->faster migration and snapshot images save
+sudo apt-get install zfsutils-linux
+sudo zpool list
+
+# LXD-TOOLS?
+sudo apt-get install criu lxd-tools
+
+# LOG files of the container
+cd /var/log/lxd/my-ubuntu1/
+
+# LXD log file
+sudo nano /var/log/lxd/lxd.log
+
+# COMPARING BETWEEN DIR AND ZFS STORAGE POOL N=10 STATELESS SNAPSHOT UBUNTU 16.04
+
+DIR(s)	ZFS(s)
+4,00	19,00
+4,00	16,00
+4,00	16,00
+4,00	15,00
+4,00	15,00
+4,00	16,00
+4,00	20,00
+4,00	16,00
+4,00	15,00
+3,00	16,00
+
+AVG	AVG
+3,90	16,40
+VAR	VAR
+0,10	2,93
+
+# TRY CHANGING KERNEL VERSION
+uname -a
+apt-cache search linux-image
+sudo apt-get install linux-image-extra-4.4.0-45-generic 
+sudo nano /boot/grub/grub.cfg ---> just change here!!!!!
+sudo nano /etc/default/grub
+sudo update-grub
+sudo grub-reboot 3 && sudo reboot
+
+# NEW KERNEL VERSION ERROR move
+DBUG[05-15|13:34:17] Raw response: {"type":"sync","status":"Success","status_code":200,"operation":"","error_code":0,"error":"","metadata":{"id":"8aa03022-c0d2-45bb-9ae7-ef5ebdfd8580","class":"websocket","created_at":"2017-05-15T13:34:06.190691787+01:00","updated_at":"2017-05-15T13:34:06.190691787+01:00","status":"Failure","status_code":400,"resources":{"containers":["/1.0/containers/my-ubuntu2"]},"metadata":{"control":"62c0cedda1a810da30b9425bdf9e03d22bf4e1ec1cb0eeb3bfe58d20391b16a0","criu":"643a414f3af518e2af88155929b8149493babd4eb873e02f9db478f1e9d7db59","fs":"9ab6e557bd1427058e2d9b4183a4bbe4098062827ea5a0fc7265b5bfcc612c54"},"may_cancel":false,"err":"Failed to mount ZFS filesystem: filesystem 'default/containers/my-ubuntu2' is already mounted\ncannot mount 'default/containers/my-ubuntu2': mountpoint or dataset is busy\n"}}
+
+federicobarusso@experiment-unit:~$ lxc snapshot my-ubuntu2 snap5 --stateful
+error: Failed to mount ZFS filesystem: filesystem 'default/containers/my-ubuntu2' is already mounted
+cannot mount 'default/containers/my-ubuntu2': mountpoint or dataset is busy
+
 
 
