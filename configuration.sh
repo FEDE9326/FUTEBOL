@@ -15,7 +15,7 @@ make;
 sudo make install;
 sudo apt-get install zfsutils-linux;
 
-ip="$(ifconfig | grep -A 1 'eth0' | tail -1 | cut -d ':' -f 2 | cut -d ' ' -f 1)"
+ip="$(ifconfig | grep -A 1 'ens3' | tail -1 | cut -d ':' -f 2 | cut -d ' ' -f 1)"
 
 sudo sh -c 'echo "auto lo
 iface lo inet loopback
