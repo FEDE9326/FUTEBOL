@@ -13,6 +13,7 @@ if [[ $answer = "n" ]] || [[ $answer = "no" ]] ; then
   return;
 fi
 
+# TODO Ceate a new profile not the default one to attach to the usrp-container. The other container (receiver) should not have access to the usrp!
 sudo sh -c 'echo "lxc.net.0.type = veth
 lxc.net.0.link = lxcbr0
 lxc.net.0.flags = up
@@ -26,7 +27,7 @@ lxc.network.name = eth1" > /etc/lxc/default.conf';
 # Creation of a basic ubuntu container
 # TODO: Check of the name
 echo "Container named usrp-container creation...";
-sudo lxc-create ubuntu -n usrp-container;
+sudo lxc-create -t ubuntu -n usrp-container;
 echo "DONE";
 echo "Starting the container";
 sudo lxc-start -n usrp-container -d;
