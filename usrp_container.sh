@@ -41,11 +41,11 @@ then
     network_name="virtual0";
 fi
 sudo ip link add $network_name link lxcbr0 type macvlan mode bridge;
-echo "Insert the IP address your container will have:[deafault=192.168.5.50]";
+echo "Insert the IP address your container will have:[deafault=192.168.5.48]";
 read ip_address;
 if [ $ip_address = ""]
 then
-    ip_address="192.168.5.50";
+    ip_address="192.168.5.48";
 fi
 bridge_name="BRIDGE-"$(echo $network_name | tr [a-z] [A-Z]);
 internal_ip=$(sudo lxc-info -n usrp-container | grep "IP:" | head -1 | sed "s/[IP: ]//g");
