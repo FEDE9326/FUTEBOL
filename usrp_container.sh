@@ -22,12 +22,12 @@ lxc.aa_allow_incomplete = 1
 
 lxc.network.type = phys
 lxc.network.link = ens4
-lxc.network.name = eth1" > /etc/lxc/default.conf';
+lxc.network.name = eth1" > /etc/lxc/usrp.conf';
 
 # Creation of a basic ubuntu container
 # TODO: Check of the name
 echo "Container named usrp-container creation...";
-sudo lxc-create -t ubuntu -n usrp-container;
+sudo lxc-create -t ubuntu -f /etc/lxc/usrp.conf -n usrp-container;
 echo "DONE";
 echo "Starting the container";
 sudo lxc-start -n usrp-container -d;
