@@ -8,9 +8,12 @@ UDP_PORT = 7124
 sock = socket.socket(socket.AF_INET, # Internet
 socket.SOCK_DGRAM) # UDP
 sock.bind((UDP_IP, UDP_PORT))
+with open("data_received", "a") as myfile:
 while True:
         data, addr = sock.recvfrom(1024) # buffer size is 1024 by
         print "received message:", data
+	myfile.write(data)
+	
 
 #Sender
 #cd /usr/local/lib/uhd/examples
