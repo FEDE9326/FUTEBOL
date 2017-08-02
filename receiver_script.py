@@ -1,8 +1,10 @@
 # Python receiver 
 
 import socket
+import os
 
-UDP_IP = "ip_address"
+f = os.popen('ifconfig eth0 | grep "inet\ addr" | cut -d: -f2 | cut -d" " -f1')
+UDP_IP = f.read()
 UDP_PORT = 7124
 sock = socket.socket(socket.AF_INET, # Internet
 socket.SOCK_DGRAM) # UDP
