@@ -2,7 +2,10 @@
 
 # Creating the receiver container
 echo "Container named receiver creation...";
-sudo sh -c 'echo "lxc.aa_allow_incomplete = 1" >> /etc/lxc/default.conf';
+sudo sh -c 'echo "lxc.aa_allow_incomplete = 1
+lxc.console = none
+lxc.tty = 0
+lxc.cgroup.devices.deny = c 5:1 rwm" >> /etc/lxc/default.conf';
 sudo lxc-create -t ubuntu -f /etc/lxc/default.conf -n receiver;
 sudo lxc-start -n receiver -d;
 
