@@ -1,21 +1,9 @@
 #!/bin/bash
 
-echo "Insert the name of the network interface:[default=virtual0]";
-read network_name;
-if [ $network_name = ""]
-then
-    network_name="virtual1";
-fi
-
-echo "Insert the IP address your container will have:[deafault=192.168.5.49]";
-read ip_address;
-if [ $ip_address = ""]
-then
-    ip_address="192.168.5.49";
-fi
-
+network_name="virtual1";
+ip_address="192.168.5.49";
 bridge_name="BRIDGE-"$(echo $network_name | tr [a-z] [A-Z]);
-internal_ip=$(sudo lxc-info -n usrp-container | grep "IP:" | head -1 | sed "s/[IP: ]//g");
+internal_ip=$(sudo lxc-info -n receiver | grep "IP:" | head -1 | sed "s/[IP: ]//g");
 
 sudo ifconfig $network_name down;
 sudo ip link delete $network_name;
