@@ -44,7 +44,7 @@ echo "Getting the receiver script...";
 sudo lxc-attach -n receiver -- wget https://raw.githubusercontent.com/FEDE9326/FUTEBOL/master/receiver_script.py;
 sudo lxc-attach -n receiver -- chmod u+x receiver_script.py;
 sudo lxc-attach -n receiver -- sed -i 's/ip_address/'$internal_ip'/g' receiver_script.py;
-echo "Starting the UDP packet receiving...they will be stored into 'data_received' file"
+echo "Starting the UDP packet receiving...they will be stored into 'data_received' file";
 sudo lxc-attach -n receiver -- python ./receiver_script.py &
 
 
