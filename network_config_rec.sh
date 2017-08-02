@@ -1,5 +1,6 @@
 #!/bin/bash
 
+sudo lxc-start -n receiver;
 echo "Creation of the virtual network interface...";
 echo "Insert the name of the network interface:[default=virtual1]";
 read network_name;
