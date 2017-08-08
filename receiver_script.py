@@ -1,7 +1,10 @@
+#!/usr/bin/python
+
 # Python receiver 
 
 import socket
 import os
+import datetime
 
 f = os.popen('ifconfig eth0 | grep "inet\ addr" | cut -d: -f2 | cut -d" " -f1')
 UDP_IP = f.read()
@@ -13,7 +16,7 @@ myfile = open("data_received", "a")
 while True:
         data, addr = sock.recvfrom(1024) # buffer size is 1024 by
         myfile.write(data)
-        print "received message:", data
+        print "received message:", datetime.datetime.now()
 	myfile.write(data)
 	
 myfile.close()
