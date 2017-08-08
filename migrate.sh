@@ -77,6 +77,6 @@ do_rsync $checkpoint_dir/
 
 ssh -t $host "sudo lxc-checkpoint -r -n $name -D $checkpoint_dir -v"
 ssh -t $host "sudo lxc-wait -n u1 -s RUNNING"
-ssh -t $host "sudo ./up_interface.sh"
+ssh -t $host "up_interface.sh" # PAY attention if you ssh with another user
 
 fi
