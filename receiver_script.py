@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # Python receiver 
 
 import socket
@@ -10,7 +12,7 @@ UDP_PORT_rec = 7124
 UDP_PORT_send = 4567
 
 sock_rec = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-sock_rec.bind((UDP_IP_SEND, UDP_PORT_rec))
+sock_rec.bind((UDP_IP_REC, UDP_PORT_rec))
 
 sock_send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
