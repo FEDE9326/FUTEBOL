@@ -10,39 +10,50 @@ import subprocess
 rate = sys.argv[1]
 nsamps = sys.argv[2]
 
+f = os.popen('ifconfig eth0 | grep "inet\ addr" | cut -d: -f2 | cut -d" " -f1')
+MY_ADDRESS = f.read()
 REC_ADDRESS = "192.168.5.49"
-TCP_PORT = "7890"
-cmd = "/usr/local/lib/uhd/examples/rx_samples_to_udp --freq 915e6 --rate " + rate + "--gain 10 --addr " +  REC_ADDRESS + "--nsamps " + nsamps
+TCP_PORT = 7890
+cmd = "/usr/local/lib/uhd/examples/rx_samples_to_udp --freq 915e6 --rate " + rate + " --gain 10 --addr " +  REC_ADDRESS + " --nsamps " + nsamps
+lista=cmd.split(" ")
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind(REC_ADDRESS,TCP_PORT)
+while True:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((MY_ADDRESS,TCP_PORT))
 
-s.listen()
-connection, client_adress = s.accept()
+        s.listen(1)
+        connection, client_adress = s.accept()
 
+        while True:
+                data=connection.recv(16)
+                if data=="start":
+                        break
+                else:
+                        print "waiting for starting..."
+                        time.sleep(1)
 
-try: 
-	while True:
-		data=connection.recv(16)
-		if data=="start":
-			break
-		else:
-			print "waiting for starting..."
-			time.sleep(1)
+        connection.close()
+        s.close()
+        before = os.popen("netstat --udp -i | grep eth0 | awk '{print $8}'")
+        UDP_before = int(before.read())
+        # RUNNING the command
+        p = subprocess.Popen(lista)
+        print "running the script..."
+        p.wait()
+
+        print "sending the stop command"
+        s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        s.connect((REC_ADDRESS,TCP_PORT))
+        s.sendall("stop")
+        s.close()
+
+        after = os.popen("netstat --udp -i | grep eth0 | awk '{print $8}'")
+        UDP_after = int(after.read())
+
+        f=open("results_"+rate+"_"+nsamps+".dat","a")
+        f.write(rate+" " + nsamps + " " + str(UDP_after-UDP_before) + "\n")
+        f.close()
 	
-before = os.popen("netstat --udp -i | grep eth0 | awk '{print $8}'")
-UDP_before= before.read()
+	s.close()
+	
 
-# RUNNING the command
-p = subprocess.Popen(cmd)
-print "running the script..."
-p.wait()
-
-after = os.popen("netstat --udp -i | grep eth0 | awk '{print $8}'")
-UDP_after = after.read()
-
-f=open("results_"+rate+"_"+nsamps+".dat","w")
-f.write(rate+" "+nsamps+" "+UDP_after-UDP_before)
-f.close()
-
-s.close()
