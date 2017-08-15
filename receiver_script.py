@@ -36,7 +36,7 @@ try:
 except socket.error:
 	print "Network errors"
 
-before = os.popen("netstat --udp -i | grep eth0 | awk '{print $8}'")
+before = os.popen("netstat --udp -i | grep eth0 | awk '{print $4}'")
 UDP_before= before.read()
 
 while True:
@@ -48,7 +48,7 @@ while True:
         	#sock_send.sendto(data, (UDP_IP_SEND,UDP_PORT_send))
         # print "received message:", data
 
-after = os.popen("netstat --udp -i | grep eth0 | awk '{print $8}'")
+after = os.popen("netstat --udp -i | grep eth0 | awk '{print $4}'")
 UDP_after = after.read()
 
 f=open("results_"+rate+"_"+nsamps+".dat","w")
