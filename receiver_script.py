@@ -40,7 +40,7 @@ before = os.popen("netstat --udp -i | grep eth0 | awk '{print $4}'")
 UDP_before= before.read()
 
 while True:
-		try:
+	try:
        		data = sock_rec.recvfrom(1024) # buffer size is 1024 by
        	except TimeoutException:
        		print "Timeout exiting"
