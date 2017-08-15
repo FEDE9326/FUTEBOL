@@ -1,5 +1,8 @@
 #!/bin/bash
 
+echo "This script must be run with the container running...Press any key to continue";
+read r;
+
 network_name="virtual1";
 ip_address="192.168.5.49";
 bridge_name="BRIDGE-"$(echo $network_name | tr [a-z] [A-Z]);
