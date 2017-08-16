@@ -57,12 +57,12 @@ do_rsync() {
 # we assume the same lxcpath on both hosts, that is bad.
 LXCPATH=$(lxc-config lxc.lxcpath)
 
-lxc-checkpoint -n $name -D $checkpoint_dir -s -v
-
 network_name="virtual1";
 ip_address="192.168.5.49";
 bridge_name="BRIDGE-"$(echo $network_name | tr [a-z] [A-Z]);
 internal_ip=$(sudo lxc-info -n receiver | grep "IP:" | head -1 | sed "s/[IP: ]//g");
+
+lxc-checkpoint -n $name -D $checkpoint_dir -s -v;
 
 sudo ifconfig $network_name down;
 sudo ip link delete $network_name;
