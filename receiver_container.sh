@@ -8,6 +8,7 @@ lxc.tty = 0
 lxc.cgroup.devices.deny = c 5:1 rwm" >> /etc/lxc/default.conf';
 sudo lxc-create -t ubuntu -f /etc/lxc/default.conf -n receiver;
 sudo lxc-start -n receiver -d;
+sudo lxc-attach -n receiver -- dhclient eth0;
 
 # Creation of a virtual bridge and a chain for IP traffic
 echo "Creation of the virtual network interface...";
