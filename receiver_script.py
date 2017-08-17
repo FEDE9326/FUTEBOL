@@ -11,6 +11,7 @@ import time
 stop = 0
 rate = sys.argv[1]
 nsamps = sys.argv[2]
+iteration = sys.argv[3]
 sleep_time = 4
 
 def receive_stop():
@@ -74,5 +75,5 @@ after = os.popen("netstat -suno | grep 'packets received' | awk '{print $1}'")
 UDP_after = int(after.read())
 
 f = open("results_"+rate+"_"+nsamps+".dat","a")
-f.write(rate + " " + nsamps + " " + str(UDP_after-UDP_before) + "\n")
+f.write(iteration + " " + rate + " " + nsamps + " " + str(UDP_after-UDP_before) + "\n")
 f.close()
