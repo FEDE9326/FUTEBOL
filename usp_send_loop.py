@@ -9,6 +9,7 @@ import subprocess
 
 rate = sys.argv[1]
 nsamps = sys.argv[2]
+sim_time = 60
 
 f = os.popen('ifconfig eth0 | grep "inet\ addr" | cut -d: -f2 | cut -d" " -f1')
 MY_ADDRESS = f.read()
@@ -37,9 +38,16 @@ while True:
         before = os.popen("netstat --udp -i | grep eth0 | awk '{print $8}'")
         UDP_before = int(before.read())
         # RUNNING the command
-        p = subprocess.Popen(lista)
-        print "running the script..."
-        p.wait()
+	
+	try:	
+		start = time.time()
+        	p = subprocess.Popen(lista)
+        	print "running the script..."
+        	p.wait()
+	except:
+		new_time = time.time() - start
+		lista[9] = int(lista[9]-(new_time*nsamps/sim_time))
+		p = subprocess.Popen(lista)
 
         print "sending the stop command"
         s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
