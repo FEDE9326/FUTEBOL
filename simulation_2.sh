@@ -30,9 +30,9 @@ internal_ip=$(sudo lxc-info -n receiver | grep "IP:" | head -1 | sed "s/[IP: ]//
 for (( i=1; i<=iteration; i++))
 do
 	
-  sudo ssh user@OTHER_REC_IP -- lxc-attach -n $other_container_name -- ./usp_send_loop_2.py $rate $nsamps $i
+  	sudo ssh user@OTHER_REC_IP -- lxc-attach -n $other_container_name -- ./usp_send_loop_2.py $rate $nsamps $i
 	#TODO check if can be checkpointed
-	sudo ssh root@$CONATINER_IP -- nohup ./receiver_script.py $rate $nsamps &
+	sudo ssh root@$CONATINER_IP -- nohup ./receiver_script_2.py $rate $nsamps $i &
 	
 	sleep $time_for_migration
 	start_migration=$(date +"%T.%6N")
