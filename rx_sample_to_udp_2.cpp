@@ -25,7 +25,10 @@
 #include <boost/thread.hpp>
 #include <iostream>
 #include <complex>
+#include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 namespace po = boost::program_options;
 
@@ -38,6 +41,7 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     double rate, freq, gain, bw;
     std::string addr, port;
     struct sockaddr_in server;
+    int thisSocket;
 
     //setup the program options
     po::options_description desc("Allowed options");
@@ -186,7 +190,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
         num_acc_samps += num_rx_samps;
 
     } done_loop:
-
+    
+    close(thisSocket);
     //finished
     std::cout << std::endl << "Done!" << std::endl << std::endl;
 
