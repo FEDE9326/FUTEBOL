@@ -62,8 +62,11 @@ ip_address="192.168.5.49";
 bridge_name="BRIDGE-"$(echo $network_name | tr [a-z] [A-Z]);
 internal_ip=$(sudo lxc-info -n receiver | grep "IP:" | head -1 | sed "s/[IP: ]//g");
 
-lxc-checkpoint -n $name -D $checkpoint_dir -s -v;
 
+
+echo "checkpointing..."
+lxc-checkpoint -n $name -D $checkpoint_dir -s -v;
+echo "turning off the network in me..."
 sudo ifconfig $network_name down;
 sudo ip link delete $network_name;
 sudo iptables -t nat -D PREROUTING -p all -d $ip_address -j $bridge_name;
@@ -72,11 +75,19 @@ sudo iptables -t nat -D POSTROUTING -p all -s $internal_ip -j SNAT --to-source $
 sudo iptables -t nat --flush $bridge_name;
 sudo iptables -t nat --delete-chain $bridge_name;
 
+echo "do rsync lxc comtainer..."
 do_rsync $LXCPATH/$name/
+echo "do rsync checkpoint..."
 do_rsync $checkpoint_dir/
+sleep 0.2
+echo "restore checkpoint..."
+ssh $host "sudo lxc-checkpoint -r -n $name -D $checkpoint_dir -v"
+sleep 0.2
+echo "wait the container runnung again..."
+ssh $host "sudo lxc-wait -n u1 -s RUNNING"
+echo "up interface..."
+ssh -t $host "/root/up_interface.sh" # PAY attention if you ssh with another user
 
-ssh -t $host "sudo lxc-checkpoint -r -n $name -D $checkpoint_dir -v"
-ssh -t $host "sudo lxc-wait -n u1 -s RUNNING"
-ssh -t $host "up_interface.sh" # PAY attention if you ssh with another user
+echo "migration done..."
 
 fi
