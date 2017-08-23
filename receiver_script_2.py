@@ -9,10 +9,13 @@ import threading
 import time
 
 stop = 0
+stat=[]
+frequency=0.01
 rate = sys.argv[1]
 nsamps = sys.argv[2]
 iteration = sys.argv[3]
 sleep_time = 4
+PACKET_SIZE = 1472
 
 def receive_stop():
         print "running the thread..."
@@ -30,7 +33,17 @@ def receive_stop():
                         time.sleep(sleep_time)
                         stop = 1
                         break
-        return
+        sock_tcp.close()
+	return
+
+def packet_trend():
+        
+        global stop,n_packets,stat
+        while stop == 0:
+                stat.append(n_packets)
+                time.sleep(frequency)
+        
+                
 
 
 f = os.popen('ifconfig eth0 | grep "inet\ addr" | cut -d: -f2 | cut -d" " -f1')
@@ -48,22 +61,25 @@ sock_rec.settimeout(wait_time)
 
 t = threading.Thread(target=receive_stop)
 t.start()
+t2 = threading.Thread(target=packet_trend)
+t2.start()
 
-before = os.popen("netstat -suno | grep 'packets received' | awk '{print $1}'")
-UDP_before = int(before.read())
+n_packets=0
 
 while stop == 0:
+
         try:
-                data = sock_rec.recvfrom(1024) # buffer size is 1024 by
+                data = sock_rec.recvfrom(PACKET_SIZE)
+		n_packets=n_packets+1
         except socket.error:
                 print "I'm not receiving data..."
 
-#sock_send.sendto(data, (UDP_IP_SEND,UDP_PORT_send))
-        #print "received message:", stop
+sock_rec.close()
 
-after = os.popen("netstat -suno | grep 'packets received' | awk '{print $1}'")
-UDP_after = int(after.read())
 
 f = open("results_"+rate+"_"+nsamps+".dat","a")
-f.write(iteration + " " + rate + " " + nsamps + " " + str(UDP_after-UDP_before) + "\n")
+f.write(iteration + " " + rate + " " + nsamps + " " + str(n_packets) + "\n")
 f.close()
+f2 = open("packet_trend.dat","a")
+f2.write(stat)
+f2.close()
