@@ -1,5 +1,5 @@
 //
-// Copyright 2010-2012 Ettus Research LLC
+// Copyright 2010-2012,2014 Ettus Research LLC
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,6 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#include <uhd/types/tune_request.hpp>
 #include <uhd/utils/thread_priority.hpp>
 #include <uhd/utils/safe_main.hpp>
 #include <uhd/usrp/multi_usrp.hpp>
@@ -22,6 +23,7 @@
 #include <uhd/exception.hpp>
 #include <boost/program_options.hpp>
 #include <boost/format.hpp>
+#include <boost/asio.hpp>
 #include <boost/thread.hpp>
 #include <iostream>
 #include <complex>
@@ -29,8 +31,45 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <boost/array.hpp>
 
 namespace po = boost::program_options;
+using boost::asio::ip::udp;
+
+// UDP client class
+class UDPClient
+{
+    
+public:
+    
+	UDPClient(
+		boost::asio::io_service& io_service,
+		const std::string& host,
+		const std::string& port
+        ) : io_service_(io_service), socket_(io_service, udp::endpoint(udp::v4(), 0)) {
+		udp::resolver resolver(io_service_);
+		udp::resolver::query query(udp::v4(), host, port);
+		udp::resolver::iterator iter = resolver.resolve(query);
+		endpoint_ = *iter;
+	}
+
+	~UDPClient()
+	{
+		socket_.close();
+	}
+    
+    // send a vector of IQ samples std::complex<float>
+	void send(std::vector<std::complex<float> >& vect,size_t num_samps) {
+		socket_.send_to(boost::asio::buffer(vect,num_samps*sizeof(vect.front())), endpoint_);
+		return;
+	}
+
+private:
+	boost::asio::io_service& io_service_;
+	udp::socket socket_;
+	udp::endpoint endpoint_;
+};
+
 
 int UHD_SAFE_MAIN(int argc, char *argv[]){
     uhd::set_thread_priority_safe();
@@ -39,9 +78,8 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     std::string args, file, ant, subdev, ref;
     size_t total_num_samps;
     double rate, freq, gain, bw;
-    std::string addr, port;
-    struct sockaddr_in server;
-    int thisSocket;
+    std::string addr,port;
+    boost::asio::io_service io_service;
 
     //setup the program options
     po::options_description desc("Allowed options");
@@ -52,12 +90,13 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
         ("rate", po::value<double>(&rate)->default_value(100e6/16), "rate of incoming samples")
         ("freq", po::value<double>(&freq)->default_value(0), "rf center frequency in Hz")
         ("gain", po::value<double>(&gain)->default_value(0), "gain for the RF chain")
-        ("ant", po::value<std::string>(&ant), "daughterboard antenna selection")
-        ("subdev", po::value<std::string>(&subdev), "daughterboard subdevice specification")
-        ("bw", po::value<double>(&bw), "daughterboard IF filter bandwidth in Hz")
+        ("ant", po::value<std::string>(&ant), "antenna selection")
+        ("subdev", po::value<std::string>(&subdev), "subdevice specification")
+        ("bw", po::value<double>(&bw), "analog frontend filter bandwidth in Hz")
         ("port", po::value<std::string>(&port)->default_value("7124"), "server udp port")
         ("addr", po::value<std::string>(&addr)->default_value("192.168.1.10"), "resolvable server address")
-        ("ref", po::value<std::string>(&ref)->default_value("internal"), "waveform type (internal, external, mimo)")
+        ("ref", po::value<std::string>(&ref)->default_value("internal"), "reference source (internal, external, mimo)")
+        ("int-n", "tune USRP with integer-N tuning")
     ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -78,26 +117,33 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     //Lock mboard clocks
     usrp->set_clock_source(ref);
 
+    //always select the subdevice first, the channel mapping affects the other settings
+    if (vm.count("subdev")) {
+        usrp->set_rx_subdev_spec(subdev);
+    }
+
     //set the rx sample rate
     std::cout << boost::format("Setting RX Rate: %f Msps...") % (rate/1e6) << std::endl;
     usrp->set_rx_rate(rate);
     std::cout << boost::format("Actual RX Rate: %f Msps...") % (usrp->get_rx_rate()/1e6) << std::endl << std::endl;
 
     //set the rx center frequency
-    std::cout << boost::format("Setting RX Freq: %f Mhz...") % (freq/1e6) << std::endl;
-    usrp->set_rx_freq(freq);
-    std::cout << boost::format("Actual RX Freq: %f Mhz...") % (usrp->get_rx_freq()/1e6) << std::endl << std::endl;
+    std::cout << boost::format("Setting RX Freq: %f MHz...") % (freq/1e6) << std::endl;
+    uhd::tune_request_t tune_request(freq);
+    if(vm.count("int-n")) tune_request.args = uhd::device_addr_t("mode_n=integer");
+    usrp->set_rx_freq(tune_request);
+    std::cout << boost::format("Actual RX Freq: %f MHz...") % (usrp->get_rx_freq()/1e6) << std::endl << std::endl;
 
     //set the rx rf gain
     std::cout << boost::format("Setting RX Gain: %f dB...") % gain << std::endl;
     usrp->set_rx_gain(gain);
     std::cout << boost::format("Actual RX Gain: %f dB...") % usrp->get_rx_gain() << std::endl << std::endl;
 
-    //set the IF filter bandwidth
+    //set the analog frontend filter bandwidth
     if (vm.count("bw")){
-        std::cout << boost::format("Setting RX Bandwidth: %f MHz...") % bw << std::endl;
+        std::cout << boost::format("Setting RX Bandwidth: %f MHz...") % (bw/1e6) << std::endl;
         usrp->set_rx_bandwidth(bw);
-        std::cout << boost::format("Actual RX Bandwidth: %f MHz...") % usrp->get_rx_bandwidth() << std::endl << std::endl;
+        std::cout << boost::format("Actual RX Bandwidth: %f MHz...") % (usrp->get_rx_bandwidth()/1e6) << std::endl << std::endl;
     }
 
     //set the antenna
@@ -139,31 +185,15 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
     size_t num_acc_samps = 0; //number of accumulated samples
     uhd::rx_metadata_t md;
     std::vector<std::complex<float> > buff(rx_stream->get_max_num_samps());
-    //uhd::transport::udp_simple::sptr udp_xport = uhd::transport::udp_simple::make_connected(addr, port);
-    thisSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
-    if (thisSocket < 0)
-    {
-        std::cout<<"\nSocket Creation FAILED!";
-        return -1;
-    }
-
-    server.sin_addr.s_addr = inet_addr(addr);
-    server.sin_family = AF_INET;
-    server.sin_port = htons( port );
-
-    if (bind(thisSocket, (struct sockaddr *)&server, sizeof(server)) < 0) {
-        std::cout << "Connection error";
-        return -1;
-    }
-
-
-
+    
+    //udp client creation
+    UDPClient client(io_service, addr, port);
+    
     while(num_acc_samps < total_num_samps){
         size_t num_rx_samps = rx_stream->recv(
             &buff.front(), buff.size(), md
         );
-
+        
         //handle the error codes
         switch(md.error_code){
         case uhd::rx_metadata_t::ERROR_CODE_NONE:
@@ -183,20 +213,14 @@ int UHD_SAFE_MAIN(int argc, char *argv[]){
             goto done_loop;
         }
 
-        //send complex single precision floating point samples over udp
-        //udp_xport->send(boost::asio::buffer(buff, num_rx_samps*sizeof(buff.front())));
-        send(socket,buff,num_rx_samps*sizeof(buff.front()));
-
-        num_acc_samps += num_rx_samps;
-
+    //client.send(boost::asio::buffer(buff,num_rx_samps*sizeof(buff.front())));
+    client.send(buff,num_rx_samps);
+	num_acc_samps += num_rx_samps;
+   
     } done_loop:
-    
-    close(thisSocket);
+
     //finished
     std::cout << std::endl << "Done!" << std::endl << std::endl;
-
-    return EXIT_SUCCESS;
+    
+    exit(EXIT_SUCCESS);
 }
-
-
-
