@@ -29,15 +29,7 @@ start = time.time()
 p = subprocess.Popen(lista,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 print "running the script..."
 p.wait()
-
-out,err=p.communicate()
-
-if ERROR_MESSAGE in err:
-  new_time = time.time() - start
-	lista[10] = str(int(int(lista[10])-(float(new_time)*int(nsamps)/int(sim_time))))
-	p = subprocess.Popen(lista)
-	print "running the script...2 time for a network error"
-	p.wait()
+print "scrit ended..."
 
 print "sending the stop command"
 s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -50,7 +42,7 @@ UDP_after = int(after.read())
 
 f=open("results_"+rate+"_"+nsamps+".dat","a")
 f.write(str(iteration) + " " + rate+" " + nsamps + " " + str(UDP_after-UDP_before) + "\n")
-f.close()
-	
-s.close()
 
+f.close()
+
+s.close()
