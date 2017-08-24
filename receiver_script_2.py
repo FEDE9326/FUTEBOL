@@ -7,10 +7,11 @@ import os
 import sys
 import threading
 import time
+import json
 
 stop = 0
 stat=[]
-frequency=0.01
+frequency=0.1
 rate = sys.argv[1]
 nsamps = sys.argv[2]
 iteration = sys.argv[3]
@@ -22,7 +23,7 @@ UDP_PORT_rec = 7124
 TCP_IP = "192.168.5.48"
 TCP_PORT = 7890
 wait_time = 2
-lock = threading.Lock()
+diz={}
 
 def receive_stop():
         print "running the thread..."
@@ -41,31 +42,18 @@ def receive_stop():
                         stop = 1
                         break
         sock_tcp.close()
-	return
-
-def packet_trend():
-        
-        global stop,n_packets,stat
-        while stop == 0:
-		with lock:
-                	stat.append(n_packets)
-                time.sleep(frequency)
-        
-                
+	return             
 
 if __name__ == '__main__':
 	f = os.popen('ifconfig eth0 | grep "inet\ addr" | cut -d: -f2 | cut -d" " -f1')
 	IP_REC = f.read()
 	
-
 	sock_rec = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
 	sock_rec.bind((IP_REC, UDP_PORT_rec))
 	sock_rec.settimeout(wait_time)
 
 	t = threading.Thread(target=receive_stop)
 	t.start()
-	t2 = threading.Thread(target=packet_trend)
-	t2.start()
 
 	n_packets=0
 
@@ -73,8 +61,8 @@ if __name__ == '__main__':
 
 		try:
 			data = sock_rec.recvfrom(PACKET_SIZE)
-			with lock:
-				n_packets=n_packets+1
+			n_packets=n_packets+1
+			diz[time.time()]=n_packets
 		except socket.error:
 			print "I'm not receiving data..."
 
@@ -84,6 +72,7 @@ if __name__ == '__main__':
 	f = open("results_"+rate+"_"+nsamps+".dat","a")
 	f.write(iteration + " " + rate + " " + nsamps + " " + str(n_packets) + "\n")
 	f.close()
+	
 	f2 = open("packet_trend.dat","a")
-	f2.write(stat)
+	f2.write(json.dumps(diz))
 	f2.close()
