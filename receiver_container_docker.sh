@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Creation of the image
-docker build -t docker_receiver ./receiver_docker/docker_file
+docker build -t docker_receiver ./receiver_docker/
 
 # Starting the container
 docker run -d --name receiver docker_receiver 
