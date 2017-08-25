@@ -25,8 +25,8 @@ wait_time=$((sim_time-time_for_migration))
 #sudo lxc-attach -n receiver -- echo $key >> /root/.ssh/authorized_keys
 #sudo ssh -i /root/.ssh/id_rsa2 root@192.168.5.49 
 
-./network_config_rec.sh
-internal_ip=$(sudo lxc-info -n receiver | grep "IP:" | head -1 | sed "s/[IP: ]//g")
+./network_config_rec_docker.sh
+internal_ip=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' receiver);
 
 for (( i=1; i<=iteration; i++))
 do
@@ -50,7 +50,7 @@ do
 	end=false
 
 	while [ "$end" = false ]; do
-		PID=$(sudo ssh root@192.168.5.49 -- ps -el | grep receiver_script | awk {'print $4'})
+		PID=$(sudo ssh root@192.168.5.49 -- ps -el | grep receiver_script_2 | awk {'print $4'})
 		if [ -z "$PID" ]; then
 			echo "program has terminated..."
 			end=true
@@ -64,9 +64,8 @@ do
 	sleep 3
 
 	sudo ssh $user@$OTHER_REC_IP -- ./clear_interface.sh
-	sudo ssh $user@$OTHER_REC_IP -- lxc-stop -n receiver
-	sudo ssh $user@$OTHER_REC_IP -- /etc/init.d/dnsmasq restart
-	./network_config_rec.sh
+	sudo ssh $user@$OTHER_REC_IP -- docker stop receiver
+	./network_config_rec_docker.sh
 
 done
 
