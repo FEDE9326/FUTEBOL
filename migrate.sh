@@ -33,13 +33,31 @@ echo $container_id
 # we assume the same lxcpath on both hosts, that is bad.
 DOCKERPATH=/var/lib/docker/containers
 
+network_name="virtual1";
+ip_address="192.168.5.49";
+bridge_name="BRIDGE-"$(echo $network_name | tr [a-z] [A-Z]);
+internal_ip=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' receiver);
+
+echo "checkpointing..."
 docker checkpoint create --checkpoint-dir=/tmp $name checkpoint
 
+echo "turning off the network in me..."
+sudo ifconfig $network_name down;
+sudo ip link delete $network_name;
+sudo iptables -t nat -D PREROUTING -p all -d $ip_address -j $bridge_name;
+sudo iptables -t nat -D OUTPUT -p all -d $ip_address -j $bridge_name;
+sudo iptables -t nat -D POSTROUTING -p all -s $internal_ip -j SNAT --to-source $ip_address;
+sudo iptables -t nat --flush $bridge_name;
+sudo iptables -t nat --delete-chain $bridge_name;
+
+echo "rsyncs..."
 do_rsync $DOCKERPATH/$container_id*/
 do_rsync $checkpoint_dir/
-
+sleep 0.2
+echo "restore checkpoint..."
 ssh -t $host "docker start --checkpoint-dir=/tmp --checkpoint=checkpoint $name"
-
+echo "up interface..."
+ssh -t $host "/root/up_interface_docker.sh"
 
 
 elif [ "$1" == "lxc" ]
@@ -62,10 +80,9 @@ ip_address="192.168.5.49";
 bridge_name="BRIDGE-"$(echo $network_name | tr [a-z] [A-Z]);
 internal_ip=$(sudo lxc-info -n receiver | grep "IP:" | head -1 | sed "s/[IP: ]//g");
 
-
-
 echo "checkpointing..."
 lxc-checkpoint -n $name -D $checkpoint_dir -s -v;
+
 echo "turning off the network in me..."
 sudo ifconfig $network_name down;
 sudo ip link delete $network_name;
