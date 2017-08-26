@@ -20,54 +20,44 @@ cmd = '/usr/local/lib/uhd/examples/rx_samples_to_udp --freq 915e6 --rate ' + rat
 lista = cmd.split(" ")
 iteration = 0
 
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind((MY_ADDRESS,TCP_PORT))
+
+s.listen(1)
+connection, client_adress = s.accept()
+
 while True:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind((MY_ADDRESS,TCP_PORT))
+	data=connection.recv(16)
+	if data=="start":
+		break
+	else:
+		print "waiting for starting..."
+		time.sleep(1)
 
-        s.listen(1)
-        connection, client_adress = s.accept()
+connection.close()
+s.close()
+before = os.popen("netstat --udp -i | grep eth0 | awk '{print $8}'")
+UDP_before = int(before.read())
+# RUNNING the command
 
-        while True:
-                data=connection.recv(16)
-                if data=="start":
-                        break
-                else:
-                        print "waiting for starting..."
-                        time.sleep(1)
+start = time.time()
+p = subprocess.Popen(lista,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+print "running the script..."
+p.wait()
 
-        connection.close()
-        s.close()
-        before = os.popen("netstat --udp -i | grep eth0 | awk '{print $8}'")
-        UDP_before = int(before.read())
-        # RUNNING the command
+print "sending the stop command"
+s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+s.connect((REC_ADDRESS,TCP_PORT))
+s.sendall("stop")
+s.close()
 
-	start = time.time()
-        p = subprocess.Popen(lista,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        print "running the script..."
-        p.wait()
+after = os.popen("netstat --udp -i | grep eth0 | awk '{print $8}'")
+UDP_after = int(after.read())
 
-	out,err=p.communicate()
+f=open("results_"+rate+"_"+nsamps+".dat","a")
+f.write(str(iteration) + " " + rate+" " + nsamps + " " + str(UDP_after-UDP_before) + "\n")
+f.close()
 
-	if ERROR_MESSAGE in err:
-		new_time = time.time() - start
-		lista[10] = str(int(int(lista[10])-(float(new_time)*int(nsamps)/int(sim_time))))
-		p = subprocess.Popen(lista)
-		print "running the script...2 time for a network error"
-		p.wait()
-
-        print "sending the stop command"
-        s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        s.connect((REC_ADDRESS,TCP_PORT))
-        s.sendall("stop")
-        s.close()
-
-        after = os.popen("netstat --udp -i | grep eth0 | awk '{print $8}'")
-        UDP_after = int(after.read())
-	iteration=iteration+1
-        f=open("results_"+rate+"_"+nsamps+".dat","a")
-        f.write(str(iteration) + " " + rate+" " + nsamps + " " + str(UDP_after-UDP_before) + "\n")
-        f.close()
-	
-	s.close()
-	time.sleep(3)
+s.close()
+				
 
