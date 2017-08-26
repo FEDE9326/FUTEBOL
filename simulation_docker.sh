@@ -25,17 +25,14 @@ wait_time=$((sim_time-time_for_migration))
 #sudo lxc-attach -n receiver -- echo $key >> /root/.ssh/authorized_keys
 #sudo ssh -i /root/.ssh/id_rsa2 root@192.168.5.49 
 
-./network_config_rec_docker.sh
-internal_ip=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' receiver);
-
 for (( i=1; i<=iteration; i++))
 do
-	sleep $sleep_time
-
+	
   	sudo ssh $user@$USRP_VM_IP -- lxc-attach -n $other_container_name -- nohup ./usp_send_loop_2.py $rate $nsamps $i & #must be inside root in the container
 	#TODO check if can be checkpointed
-	sudo ssh root@$CONATINER_IP -- nohup /root/receiver_script_2.py $rate $nsamps $i &
-
+	#sudo ssh root@$CONATINER_IP -- nohup /root/receiver_script_2.py $rate $nsamps $i &
+	./network_config_rec_docker.sh
+	internal_ip=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' receiver);
 	sleep $time_for_migration
 	start_migration=$(date +"%T.%6N")
 	sudo ./migrate.sh $technology $container_name $user@$OTHER_REC_IP
@@ -50,8 +47,8 @@ do
 	end=false
 
 	while [ "$end" = false ]; do
-		PID=$(sudo ssh root@192.168.5.49 -- ps -el | grep receiver_script_2 | awk {'print $4'})
-		if [ -z "$PID" ]; then
+		PID=$(sudo docker inspect -f '{{.State.Running}}' $container_name)
+		if [ "$PID" == "false" ]; then
 			echo "program has terminated..."
 			end=true
 		else
@@ -63,9 +60,8 @@ do
 
 	sleep 3
 
-	sudo ssh $user@$OTHER_REC_IP -- ./clear_interface.sh
-	sudo ssh $user@$OTHER_REC_IP -- docker stop receiver
-	./network_config_rec_docker.sh
+	sudo ssh $user@$OTHER_REC_IP -- ./clear_interface_docker.sh
+
 
 done
 
