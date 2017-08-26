@@ -7,11 +7,12 @@ import os
 import sys
 import threading
 import time
+import json
 
 stop = 0
 rate = sys.argv[1]
 nsamps = sys.argv[2]
-iteration = sys.argv[3]
+iteration = 0
 sleep_time = 4
 
 def receive_stop():
@@ -61,10 +62,13 @@ t.start()
 
 before = os.popen("netstat -suno | grep 'packets received' | awk '{print $1}'")
 UDP_before = int(before.read())
-
+n_packets = 0
+diz={}
 while stop == 0:
         try:
-                data = sock_rec.recvfrom(1024) # buffer size is 1024 by
+                data = sock_rec.recvfrom(1472) # buffer size is 1024 by
+                n_packets = n_packets + 1
+                diz[time.time()] = n_packets
         except socket.error:
                 print "I'm not receiving data..."
 
@@ -75,5 +79,9 @@ after = os.popen("netstat -suno | grep 'packets received' | awk '{print $1}'")
 UDP_after = int(after.read())
 
 f = open("results_"+rate+"_"+nsamps+".dat","a")
-f.write(iteration + " " + rate + " " + nsamps + " " + str(UDP_after-UDP_before) + "\n")
+f.write(iteration + " " + rate + " " + nsamps + " " + str(n_packets) + "\n")
 f.close()
+
+f2 = open("trend_"+rate+"_"+nsamps+".dat","a")
+f2.write(json.dumps(diz))
+f2.close()
