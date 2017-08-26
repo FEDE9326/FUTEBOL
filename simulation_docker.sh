@@ -28,7 +28,7 @@ wait_time=$((sim_time-time_for_migration))
 for (( i=1; i<=iteration; i++))
 do
 	
-  	sudo ssh $user@$USRP_VM_IP -- lxc-attach -n $other_container_name -- nohup ./usp_send_loop_2.py $rate $nsamps $i & #must be inside root in the container
+  	sudo ssh $user@$USRP_VM_IP -- lxc-attach -n $other_container_name -- nohup ./usp_send_loop_2.py $rate $nsamps & #must be inside root in the container
 	#TODO check if can be checkpointed
 	#sudo ssh root@$CONATINER_IP -- nohup /root/receiver_script_2.py $rate $nsamps $i &
 	./network_config_rec_docker.sh
