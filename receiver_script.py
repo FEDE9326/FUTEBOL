@@ -79,7 +79,7 @@ after = os.popen("netstat -suno | grep 'packets received' | awk '{print $1}'")
 UDP_after = int(after.read())
 
 f = open("results_"+rate+"_"+nsamps+".dat","a")
-f.write(iteration + " " + rate + " " + nsamps + " " + str(n_packets) + "\n")
+f.write(str(iteration) + " " + rate + " " + nsamps + " " + str(n_packets) + "\n")
 f.close()
 
 f2 = open("trend_"+rate+"_"+nsamps+".dat","a")
