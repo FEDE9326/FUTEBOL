@@ -1,14 +1,17 @@
 #!/bin/bash
 
+#BEfore change default IP address here sudo nano /etc/default/docker with DOCKER_OPTS="--dns 134.226.56.13" then sudo /etc/init.d/docker restart
+
 # Creation of the image
-docker build -t docker_receiver ./receiver_docker/
+sudo docker build -t docker_receiver ./receiver_docker/
 
 # Starting the container
-docker run -d --name receiver docker_receiver 
-
+sudo docker run -dit --name receiver docker_receiver
+# for access the bash sudo 
+#sudo docker run -dit --name receiver docker_receiver
 #Creation of the virtual interface
 network_name="virtual1";
-sudo ip link add $network_name link dockerbr0 type macvlan mode bridge;
+sudo ip link add $network_name link docker0 type macvlan mode bridge;
 ip_address="192.168.5.49";
 bridge_name="BRIDGE-"$(echo $network_name | tr [a-z] [A-Z]);
 internal_ip=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' receiver);
