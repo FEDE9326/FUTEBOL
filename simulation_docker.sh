@@ -13,8 +13,8 @@ OTHER_REC_IP="192.168.5.75"
 CONATINER_IP="192.168.5.49"
 MY_IP="192.168.5.153"
 USRP_VM_IP="192.168.5.134"
-sleep_time = "8"
-sim_time = "60"
+sleep_time = 8
+sim_time = 60
 wait_time=$((sim_time-time_for_migration))
 
 #PRELIMINARY OPERATIONS
@@ -26,7 +26,6 @@ wait_time=$((sim_time-time_for_migration))
 
 for (( i=1; i<=iteration; i++))
 do
-	
   	sudo ssh $user@$USRP_VM_IP -- lxc-attach -n $other_container_name -- nohup ./usp_send_loop.py $rate $nsamps & #must be inside root in the container
 	#TODO check if can be checkpointed
 	#sudo ssh root@$CONATINER_IP -- nohup /root/receiver_script_2.py $rate $nsamps $i &
