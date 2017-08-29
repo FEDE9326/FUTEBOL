@@ -33,14 +33,18 @@ echo $container_id
 # we assume the same lxcpath on both hosts, that is bad.
 DOCKERPATH=/var/lib/docker/containers
 
+# GETTING INFORMATIONS FOR VIRTUAL NETWORK CONFIGURATION
 network_name="virtual1";
 ip_address="192.168.5.49";
 bridge_name="BRIDGE-"$(echo $network_name | tr [a-z] [A-Z]);
-internal_ip=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' receiver);
+internal_ip="172.17.0.2"
+# FOR MAKE IT SIMPLER. THE IP ADDRESS CAN BE GOT TYPING...
 
-echo "checkpointing..."
-docker checkpoint create --checkpoint-dir=/tmp $name checkpoint
+#CHECKPOINT CREATION. CAN BE PASSED ALSO --leave-running
+sudo docker checkpoint create --checkpoint-dir=/tmp $name checkpoint
+echo "checkpoint created..."
 
+# TURNING OFF THE VIRTUAL INTERFACE. THE CONTAINER IS STOPPED
 echo "turning off the network in me..."
 sudo ifconfig $network_name down;
 sudo ip link delete $network_name;
@@ -50,15 +54,17 @@ sudo iptables -t nat -D POSTROUTING -p all -s $internal_ip -j SNAT --to-source $
 sudo iptables -t nat --flush $bridge_name;
 sudo iptables -t nat --delete-chain $bridge_name;
 
-echo "rsyncs..."
+# MOVING CHECKPOINT AND CHANGES IN THE FILE SYSTEM
 do_rsync $DOCKERPATH/$container_id*/
 do_rsync $checkpoint_dir/
-sleep 0.2
-echo "restore checkpoint..."
-ssh -t $host "docker start --checkpoint-dir=/tmp --checkpoint=checkpoint $name"
-echo "up interface..."
+
+# RESTORING OF THE CHECKPOINT
+ssh -t $host "sudo docker start --checkpoint-dir=/tmp --checkpoint=checkpoint $name"
+
+# TURNNG ON THE NEW NETWORK INTERFACE
 ssh -t $host "/root/up_interface_docker.sh"
 
+echo "migration done..."
 
 elif [ "$1" == "lxc" ]
 then
@@ -75,14 +81,17 @@ do_rsync() {
 # we assume the same lxcpath on both hosts, that is bad.
 LXCPATH=$(lxc-config lxc.lxcpath)
 
+# GETTING INFORMATIONS FOR VIRTUAL NETWORK CONFIGURATION
 network_name="virtual1";
 ip_address="192.168.5.49";
 bridge_name="BRIDGE-"$(echo $network_name | tr [a-z] [A-Z]);
 internal_ip=$(sudo lxc-info -n receiver | grep "IP:" | head -1 | sed "s/[IP: ]//g");
 
-echo "checkpointing..."
+#CHECKPOINT CREATION
 lxc-checkpoint -n $name -D $checkpoint_dir -s -v;
+echo "checkpoint created..."
 
+# TURNING OFF THE VIRTUAL INTERFACE. THE CONTAINER IS STOPPED
 echo "turning off the network in me..."
 sudo ifconfig $network_name down;
 sudo ip link delete $network_name;
@@ -92,16 +101,17 @@ sudo iptables -t nat -D POSTROUTING -p all -s $internal_ip -j SNAT --to-source $
 sudo iptables -t nat --flush $bridge_name;
 sudo iptables -t nat --delete-chain $bridge_name;
 
-echo "do rsync lxc comtainer..."
+# MOVING CHECKPOINT AND CHANGES IN THE FILE SYSTEM
 do_rsync $LXCPATH/$name/
-echo "do rsync checkpoint..."
 do_rsync $checkpoint_dir/
-sleep 0.2
-echo "restore checkpoint..."
+
+# RESTORING OF THE CHECKPOINT
 ssh $host "sudo lxc-checkpoint -r -n $name -D $checkpoint_dir -v"
-sleep 0.2
+echo "restore checkpoint..."
 echo "wait the container runnung again..."
 ssh $host "sudo lxc-wait -n u1 -s RUNNING"
+
+# TURNNG ON THE NEW NETWORK INTERFACE
 echo "up interface..."
 ssh -t $host "/root/up_interface.sh" # PAY attention if you ssh with another user
 
