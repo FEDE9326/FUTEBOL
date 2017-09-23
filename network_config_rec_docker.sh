@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Starting the container
-sudo docker run -dit --name receiver docker_receiver
+sudo docker start receiver
 
 #Creation of the virtual interface
 network_name="virtual1";
