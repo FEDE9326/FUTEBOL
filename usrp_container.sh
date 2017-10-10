@@ -67,7 +67,7 @@ sudo lxc-attach -n usrp-container -- wget http://www.sbrac.org/files/build-gnura
 sudo lxc-attach -n usrp-container -- sed -i '79,84d' ./build-gnuradio;
 
 sudo lxc-attach -n usrp-container -- chmod a+x build-gnuradio; 
-sudo lxc-attach -n usrp-container -- ./build-gnuradio;
+sudo lxc-attach -n usrp-container -- sudo ./build-gnuradio;
 echo "DONE";
 
 echo "Configuration of the physical interface to the USRP...";
