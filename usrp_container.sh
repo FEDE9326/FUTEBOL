@@ -62,12 +62,11 @@ echo "DONE";
 echo "Installing packages inside the container...";
 sudo lxc-attach -n usrp-container -- apt-get update;
 sudo lxc-attach -n usrp-container -- apt-get install wget -y;
-sudo lxc-attach -n usrp-container -- wget http://www.sbrac.org/files/build-gnuradio; 
-# In container you have root access let's delete this constraint into the script
-sudo lxc-attach -n usrp-container -- sed -i '79,84d' ./build-gnuradio;
+sudo lxc-attach -n usrp-container -- apt-get install software-properties-common python-software-properties;
+sudo lxc-attach -n usrp-container -- add-apt-repository ppa:ettusresearch/uhd;
+sudo lxc-attach -n usrp-container -- apt-get update;
+sudo lxc-attach -n usrp-container -- apt-get install libuhd-dev libuhd003 uhd-host;
 
-sudo lxc-attach -n usrp-container -- chmod a+x build-gnuradio; 
-sudo lxc-attach -n usrp-container -- sudo ./build-gnuradio;
 echo "DONE";
 
 echo "Configuration of the physical interface to the USRP...";
@@ -80,11 +79,11 @@ iface eth0 inet dhcp
 
 auto eth1
 iface eth1 inet static
-address 10.0.41.1
+address 10.0.54.1
 netmask 255.255.255.0
-network 10.0.41.0
-broadcast 10.0.41.255
-gateway 10.0.41.1
+network 10.0.54.0
+broadcast 10.0.54.255
+gateway 10.0.54.1
 
 " > /etc/network/interfaces';
 sudo lxc-attach -n usrp-container -- ifconfig eth1 up;
