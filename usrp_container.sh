@@ -1,4 +1,17 @@
 #!/bin/bash
+# TO set the LXC environemnt in the VM 
+# sudo apt-get install lxc lxctl lxc-templates
+# sudo apt-get install build-essential
+# sudo apt-get install cgroup-bin cgroup-lite cgroup-tools cgroupfs-mount libcgroup1;
+# if lxc old kernels
+# lxc.network.type = veth
+# lxc.network.link = lxcbr0
+# lxc.network.flags = up
+# lxc.network.hwaddr = 00:16:3e:xx:xx:xx
+
+# lxc.network.type = phys
+# lxc.network.link = ens4
+# lxc.network.name = eth1
 
 # Apparmor setting and moving of the ens4 interface inside the container. The interface will be called eth1 and it will need to be activated. Also a static IP address should be set
 echo '
@@ -66,6 +79,7 @@ sudo lxc-attach -n usrp-container -- apt-get install software-properties-common 
 sudo lxc-attach -n usrp-container -- add-apt-repository ppa:ettusresearch/uhd;
 sudo lxc-attach -n usrp-container -- apt-get update;
 sudo lxc-attach -n usrp-container -- apt-get install libuhd-dev libuhd003 uhd-host;
+sudo lxc-attach -n usrp-container -- apt-get install fftw3 fftw3-dev pkg-config;
 
 echo "DONE";
 
