@@ -47,7 +47,7 @@ do
 
 	while [ "$end" = false ]; do
 		PID=$(sudo ssh root@192.168.5.49 -- ps -el | grep receiver_script | awk {'print $4'})
-		if [ -z "$PID" ]; do
+		if [ -z "$PID" ]; then
 			echo "program has terminated..."
 			end=true
 		else
