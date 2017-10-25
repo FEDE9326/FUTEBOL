@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 ###########################################################
 # This script will install and run an lxc container	  #
 # with the USRP Open-Source Toolchain (UHD and GNU Radio) #
